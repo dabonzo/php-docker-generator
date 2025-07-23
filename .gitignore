@@ -1,0 +1,12 @@
+# .gitignore
+
+# Ignore the local configuration file containing the API key
+config.js
+
+# Ignore common OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE/editor specific files
+.idea/
+.vscode/

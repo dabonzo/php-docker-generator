@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP Docker Environment Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .form-radio {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            display: inline-block;
+            position: relative;
+            background-color: #f9fafb;
+            color: #1f2937;
+            top: 5px;
+            height: 24px;
+            width: 24px;
+            border: 1px solid #d1d5db;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 8px;
+            outline: none;
+        }
+        .form-radio:checked {
+            border: 2px solid #3b82f6;
+        }
+        .form-radio:checked::before {
+            content: '';
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+        }
+        .form-checkbox {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            border-radius: 6px;
+            display: inline-block;
+            position: relative;
+        }
+        .form-checkbox:checked {
+            background-color: #3b82f6;
+            border-color: transparent;
+            color: white;
+        }
+        .form-checkbox:checked:after {
+            content: '✔';
+            position: absolute;
+            left: 6px;
+            top: 1px;
+            color: white;
+            font-size: 18px;
+        }
+        .form-checkbox:disabled {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+        .form-checkbox:disabled:after {
+            content: '';
+        }
+        .gemini-feature {
+            background: linear-gradient(to right, #e9d5ff, #d8b4fe);
+            border: 1px solid #c084fc;
+        }
+        details > summary {
+            cursor: pointer;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- This script tag will try to load your local config. On a hosted server, this file will not exist, and the AI features will be disabled. -->
+    <script src="config.js" defer></script>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-600">PHP Docker Environment Generator</h1>
+            <p class="mt-2 text-lg text-gray-600">Select your services, customize as needed, and download a ready-to-use project zip file.</p>
+        </header>
+
+        <main class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+            <form id="generator-form">
+                <!-- PHP Version -->
+                <fieldset class="mb-6">
+                    <legend class="text-xl font-semibold mb-3 text-gray-700">PHP Version</legend>
+                    <select id="php-version" class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="8.3">PHP 8.3 (Latest)</option>
+                        <option value="8.2">PHP 8.2</option>
+                        <option value="8.1">PHP 8.1</option>
+                        <option value="8.0">PHP 8.0</option>
+                        <option value="7.4">PHP 7.4</option>
+                    </select>
+                </fieldset>
+
+                <!-- Database Selection -->
+                <fieldset class="mb-6">
+                    <legend class="text-xl font-semibold mb-3 text-gray-700">Database (Choose one)</legend>
+                    <div class="space-y-3">
+                        <label class="flex items-center text-lg"><input type="radio" name="db" value="mysql" class="form-radio"> MySQL 8.0</label>
+                        <label class="flex items-center text-lg"><input type="radio" name="db" value="mariadb" class="form-radio"> MariaDB 10</label>
+                        <label class="flex items-center text-lg"><input type="radio" name="db" value="postgres" class="form-radio"> PostgreSQL 15</label>
+                        <label class="flex items-center text-lg"><input type="radio" name="db" value="none" class="form-radio" checked> None</label>
+                    </div>
+                </fieldset>
+
+                <!-- Additional Services -->
+                <fieldset class="mb-6">
+                    <legend class="text-xl font-semibold mb-3 text-gray-700">Additional Services</legend>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <label class="flex items-center text-lg"><input type="checkbox" id="redis" class="form-checkbox mr-2"> Redis</label>
+                        <label class="flex items-center text-lg"><input type="checkbox" id="mailpit" class="form-checkbox mr-2" checked> Mailpit</label>
+                        <label class="flex items-center text-lg"><input type="checkbox" id="typesense" class="form-checkbox mr-2"> Typesense</label>
+                        <label class="flex items-center text-lg"><input type="checkbox" id="phpmyadmin" class="form-checkbox mr-2" disabled> phpMyAdmin</label>
+                        <label class="flex items-center text-lg"><input type="checkbox" id="pgadmin" class="form-checkbox mr-2" disabled> pgAdmin</label>
+                    </div>
+                </fieldset>
+
+                <!-- Advanced Options -->
+                <details class="mb-6 bg-gray-50 p-4 rounded-lg border">
+                    <summary class="text-xl font-semibold text-gray-700 list-none">
+                        <span class="mr-2">▶</span> Advanced Options
+                    </summary>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label for="app-name" class="block text-sm font-medium text-gray-700">Application Name</label>
+                            <input type="text" id="app-name" value="my-app" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="app-port" class="block text-sm font-medium text-gray-700">Application Port</label>
+                            <input type="number" id="app-port" value="8000" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="md:col-span-2"><hr class="my-2"></div>
+                        <div>
+                            <label for="db-name" class="block text-sm font-medium text-gray-700">Database Name</label>
+                            <input type="text" id="db-name" value="mydatabase" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="db-user" class="block text-sm font-medium text-gray-700">Database User</label>
+                            <input type="text" id="db-user" value="user" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="db-password" class="block text-sm font-medium text-gray-700">Database Password</label>
+                            <input type="text" id="db-password" value="password" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="db-root-password" class="block text-sm font-medium text-gray-700">DB Root Password</label>
+                            <input type="text" id="db-root-password" value="rootpassword" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- README Generation Options -->
+                <fieldset class="mb-8 p-4 rounded-lg border-gray-200 border">
+                    <legend class="text-xl font-semibold mb-3 text-gray-700">README File</legend>
+                    <label class="flex items-center text-lg text-gray-800">
+                        <input type="checkbox" id="generate-readme" class="form-checkbox mr-2" checked>
+                        Generate a `README.md` file for this project
+                    </label>
+                    <div id="ai-feature-section" class="mt-3 p-3 rounded-lg gemini-feature hidden">
+                         <label class="flex items-center text-lg text-purple-900">
+                            <input type="checkbox" id="use-ai-readme" class="form-checkbox mr-2" checked>
+                            ✨ Use AI for a more detailed README
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Generate Button -->
+                <button type="submit" id="generate-btn" class="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 ease-in-out">
+                    Generate & Download ZIP
+                </button>
+                 <div id="loading" class="hidden text-center mt-4">
+                    <p class="text-blue-600 animate-pulse">Working on it... Please wait.</p>
+                    <p id="loading-status" class="text-sm text-gray-500"></p>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        // This script runs after the main DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if the GEMINI_API_KEY was loaded from config.js
+            if (typeof GEMINI_API_KEY !== 'undefined' && GEMINI_API_KEY) {
+                document.getElementById('ai-feature-section').classList.remove('hidden');
+            }
+        });
+
+        // --- UI Logic ---
+        document.querySelector('details').addEventListener('toggle', event => {
+            const summarySpan = event.target.querySelector('summary span');
+            if (event.target.open) {
+                summarySpan.textContent = '▼';
+            } else {
+                summarySpan.textContent = '▶';
+            }
+        });
+
+        const dbRadios = document.querySelectorAll('input[name="db"]');
+        const phpMyAdminCheckbox = document.getElementById('phpmyadmin');
+        const pgAdminCheckbox = document.getElementById('pgadmin');
+        const dbFields = ['db-name', 'db-user', 'db-password', 'db-root-password'];
+
+        function updateAdminTools() {
+            const selectedDb = document.querySelector('input[name="db"]:checked').value;
+            const dbIsSelected = selectedDb !== 'none';
+
+            dbFields.forEach(id => document.getElementById(id).disabled = !dbIsSelected);
+
+            if (selectedDb === 'mysql' || selectedDb === 'mariadb') {
+                phpMyAdminCheckbox.disabled = false;
+                pgAdminCheckbox.disabled = true;
+                pgAdminCheckbox.checked = false;
+            } else if (selectedDb === 'postgres') {
+                phpMyAdminCheckbox.disabled = true;
+                phpMyAdminCheckbox.checked = false;
+                pgAdminCheckbox.disabled = false;
+                document.getElementById('db-root-password').disabled = true; // No root pass for pg
+            } else {
+                phpMyAdminCheckbox.disabled = true;
+                phpMyAdminCheckbox.checked = false;
+                pgAdminCheckbox.disabled = true;
+                pgAdminCheckbox.checked = false;
+            }
+        }
+        dbRadios.forEach(radio => radio.addEventListener('change', updateAdminTools));
+        updateAdminTools(); // Initial check
+
+
+        // --- File Content Generators ---
+
+        function getEnvContent(options) {
+            let dbContent = '';
+            if (options.db === 'mysql' || options.db === 'mariadb') {
+                dbContent = `# --- Database Settings ---
+DB_CONNECTION=mysql
+DB_HOST=${options.db}
+DB_PORT=3306
+DB_DATABASE=${options.dbName}
+DB_USERNAME=${options.dbUser}
+DB_PASSWORD=${options.dbPassword}
+DB_ROOT_PASSWORD=${options.dbRootPassword}
+`;
+            } else if (options.db === 'postgres') {
+                dbContent = `# --- Database Settings ---
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+PGSQL_PORT=5432
+PGSQL_DATABASE=${options.dbName}
+PGSQL_USERNAME=${options.dbUser}
+PGSQL_PASSWORD=${options.dbPassword}
+`;
+            }
+
+            let servicePorts = [];
+            if (options.phpmyadmin) servicePorts.push('PHPMYADMIN_PORT=8081');
+            if (options.pgadmin) servicePorts.push('PGADMIN_PORT=5050');
+            if (options.mailpit) servicePorts.push('MAILPIT_SMTP_PORT=1025\nMAILPIT_UI_PORT=8025');
+            if (options.redis) servicePorts.push('REDIS_PORT=6379');
+            if (options.typesense) servicePorts.push('TYPESENSE_PORT=8108');
+
+            const servicePortsContent = servicePorts.length > 0
+                ? `\n#--------------------------------------------------------------------------\n# Service Ports\n#--------------------------------------------------------------------------\n${servicePorts.join('\n')}\n`
+                : '';
+
+            return `# .env
+
+#--------------------------------------------------------------------------
+# Application Configuration
+#--------------------------------------------------------------------------
+APP_NAME=${options.appName}
+APP_PORT=${options.appPort}
+PHP_VERSION=${options.phpVersion}
+
+#--------------------------------------------------------------------------
+# Database Configuration
+#--------------------------------------------------------------------------
+${dbContent || '# No database selected.'}
+${servicePortsContent}`;
+        }
+
+        function getDockerfileContent() {
+            return `# docker/php/Dockerfile
+
+# Use an ARG to accept the PHP version from docker-compose
+ARG PHP_VERSION=8.3
+
+# Use the official PHP-FPM image as a base. Alpine is lightweight.
+FROM php:\${PHP_VERSION}-fpm-alpine
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Install system dependencies
+# autoconf is needed for pecl extensions like redis
+RUN apk add --no-cache \\
+    autoconf \\
+    build-base \\
+    curl \\
+    git \\
+    libzip-dev \\
+    libpng-dev \\
+    libjpeg-turbo-dev \\
+    freetype-dev \\
+    oniguruma-dev \\
+    libxml2-dev \\
+    postgresql-dev \\
+    zip \\
+    unzip
+
+# Install PHP extensions
+# Note: For older PHP versions (e.g., < 7.4), extension names or installation methods might differ.
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \\
+    && docker-php-ext-install -j$(nproc) \\
+    gd \\
+    pdo_mysql \\
+    pdo_pgsql \\
+    zip \\
+    mbstring \\
+    exif \\
+    pcntl \\
+    bcmath \\
+    soap \\
+    xml
+
+# Install Composer (PHP package manager)
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Redis extension via PECL
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Clear cache
+RUN rm -rf /var/cache/apk/*
+
+# Expose port 9000 for PHP-FPM
+EXPOSE 9000
+`;
+        }
+
+        function getNginxConfContent() {
+            return `# docker/nginx/default.conf
+server {
+    listen 80;
+    server_name localhost;
+    root /var/www/html;
+
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \\.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\\.php)(/.+)$;
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+
+    location ~ /\\.ht {
+        deny all;
+    }
+}
+`;
+        }
+
+        function getIndexPhpContent() {
+            return `<?php
+
+echo "<h1>PHP Docker Environment is Running!</h1>";
+echo "<h2>PHP Version: " . phpversion() . "</h2>";
+
+phpinfo();
+`;
+        }
+
+        function getDockerComposeContent(options) {
+            const networkName = `${options.appName}-network`;
+            const dependsOn = [];
+            if (options.db !== 'none') dependsOn.push(`      - ${options.db}`);
+            if (options.redis) dependsOn.push(`      - redis`);
+            if (options.typesense) dependsOn.push(`      - typesense`);
+
+            const mysqlService = `
+  # --- MySQL Database ---
+  mysql:
+    image: 'mysql/mysql-server:8.0'
+    container_name: ${options.appName}-mysql
+    ports:
+      - '\${DB_PORT:-3306}:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '\${DB_ROOT_PASSWORD}'
+      MYSQL_DATABASE: '\${DB_DATABASE}'
+      MYSQL_USER: '\${DB_USERNAME}'
+      MYSQL_PASSWORD: '\${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - '${options.appName}-mysql:/var/lib/mysql'
+    networks:
+      - ${networkName}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p\${DB_ROOT_PASSWORD}"]
+      retries: 3
+      timeout: 5s`;
+
+            const mariadbService = `
+  # --- MariaDB Database ---
+  mariadb:
+    image: 'mariadb:10'
+    container_name: ${options.appName}-mariadb
+    ports:
+      - '\${DB_PORT:-3306}:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '\${DB_ROOT_PASSWORD}'
+      MYSQL_DATABASE: '\${DB_DATABASE}'
+      MYSQL_USER: '\${DB_USERNAME}'
+      MYSQL_PASSWORD: '\${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - '${options.appName}-mariadb:/var/lib/mysql'
+    networks:
+      - ${networkName}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p\${DB_ROOT_PASSWORD}"]
+      retries: 3
+      timeout: 5s`;
+
+            const postgresService = `
+  # --- PostgreSQL Database ---
+  postgres:
+    image: 'postgres:15'
+    container_name: ${options.appName}-postgres
+    ports:
+      - '\${PGSQL_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: '\${PGSQL_DATABASE}'
+      POSTGRES_USER: '\${PGSQL_USERNAME}'
+      POSTGRES_PASSWORD: '\${PGSQL_PASSWORD}'
+    volumes:
+      - '${options.appName}-postgres:/var/lib/postgresql/data'
+    networks:
+      - ${networkName}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "\${PGSQL_USERNAME}"]
+      retries: 3
+      timeout: 5s`;
+
+            const redisService = `
+  # --- Redis Cache ---
+  redis:
+    image: 'redis:alpine'
+    container_name: ${options.appName}-redis
+    ports:
+      - '\${REDIS_PORT:-6379}:6379'
+    volumes:
+      - '${options.appName}-redis:/data'
+    networks:
+      - ${networkName}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      retries: 3
+      timeout: 5s`;
+
+            const mailpitService = `
+  # --- Mailpit Email Catcher ---
+  mailpit:
+    image: 'axllent/mailpit:latest'
+    container_name: ${options.appName}-mailpit
+    ports:
+      - '\${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '\${MAILPIT_UI_PORT:-8025}:8025'
+    networks:
+      - ${networkName}`;
+
+            const typesenseService = `
+  # --- Typesense Search Engine ---
+  typesense:
+    image: typesense/typesense:0.25.2
+    container_name: ${options.appName}-typesense
+    ports:
+      - "\${TYPESENSE_PORT:-8108}:8108"
+    environment:
+      - TYPESENSE_DATA_DIR=/data
+      - TYPESENSE_API_KEY=your-strong-api-key # Please change this
+    volumes:
+      - '${options.appName}-typesense:/data'
+    networks:
+      - ${networkName}`;
+
+            const phpmyadminService = `
+  # --- phpMyAdmin (for MySQL/MariaDB) ---
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${options.appName}-phpmyadmin
+    ports:
+      - \${PHPMYADMIN_PORT:-8081}:80
+    environment:
+      PMA_HOST: ${options.db} # Set to mysql or mariadb
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: \${DB_ROOT_PASSWORD}
+    networks:
+      - ${networkName}
+    depends_on:
+      - ${options.db}`;
+
+            const pgadminService = `
+  # --- pgAdmin (for PostgreSQL) ---
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ${options.appName}-pgadmin
+    ports:
+      - "\${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@example.com"
+      PGADMIN_DEFAULT_PASSWORD: "password"
+    volumes:
+      - '${options.appName}-pgadmin:/var/lib/pgadmin'
+    networks:
+      - ${networkName}
+    depends_on:
+      - postgres`;
+
+            let optionalServices = '';
+            if (options.db === 'mysql') optionalServices += mysqlService;
+            if (options.db === 'mariadb') optionalServices += mariadbService;
+            if (options.db === 'postgres') optionalServices += postgresService;
+            if (options.redis) optionalServices += redisService;
+            if (options.mailpit) optionalServices += mailpitService;
+            if (options.typesense) optionalServices += typesenseService;
+            if (options.phpmyadmin) optionalServices += phpmyadminService;
+            if (options.pgadmin) optionalServices += pgadminService;
+
+            const volumes = [];
+            if (options.db === 'mysql') volumes.push(`  ${options.appName}-mysql:\n    driver: local`);
+            if (options.db === 'mariadb') volumes.push(`  ${options.appName}-mariadb:\n    driver: local`);
+            if (options.db === 'postgres') volumes.push(`  ${options.appName}-postgres:\n    driver: local`);
+            if (options.redis) volumes.push(`  ${options.appName}-redis:\n    driver: local`);
+            if (options.pgadmin) volumes.push(`  ${options.appName}-pgadmin:\n    driver: local`);
+            if (options.typesense) volumes.push(`  ${options.appName}-typesense:\n    driver: local`);
+
+            return `services:
+  # ----------------------------------------
+  # PHP Application Service (Always On)
+  # ----------------------------------------
+  app:
+    container_name: ${options.appName}-app
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: \${PHP_VERSION:-8.3}
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - ${networkName}
+    depends_on:
+${dependsOn.join('\n')}
+
+  # ----------------------------------------
+  # Web Server (NGINX)
+  # ----------------------------------------
+  nginx:
+    container_name: ${options.appName}-nginx
+    image: nginx:alpine
+    ports:
+      - "\${APP_PORT:-8000}:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - ${networkName}
+    depends_on:
+      - app
+${optionalServices}
+
+# ----------------------------------------
+# Docker Networks & Volumes
+# ----------------------------------------
+networks:
+  ${networkName}:
+    driver: bridge
+
+volumes:
+${volumes.join('\n')}
+`;
+        }
+
+        // --- README Generators ---
+
+        function getGenericReadmeContent(options) {
+            let techStack = `- PHP ${options.phpVersion}\n- NGINX`;
+            if (options.db !== 'none') techStack += `\n- ${options.db.charAt(0).toUpperCase() + options.db.slice(1)}`;
+            if (options.redis) techStack += `\n- Redis`;
+            if (options.mailpit) techStack += `\n- Mailpit`;
+            if (options.typesense) techStack += `\n- Typesense`;
+            if (options.phpmyadmin) techStack += `\n- phpMyAdmin`;
+            if (options.pgadmin) techStack += `\n- pgAdmin`;
+
+            let servicesAndPortsDetails = `- **Application URL**: http://localhost:${options.appPort}`;
+            if (options.mailpit) {
+                servicesAndPortsDetails += `\n- **Mailpit UI**: http://localhost:8025`;
+            }
+            if (options.db !== 'none') {
+                const dbPortVar = options.db === 'postgres' ? 'PGSQL_PORT' : 'DB_PORT';
+                const dbPortDefault = options.db === 'postgres' ? '5432' : '3306';
+                servicesAndPortsDetails += `\n- **Database (${options.db})**:
+    - **For your application (inside Docker):** Use the service name as the host.
+        - Host: \`${options.db}\`
+        - Port: \`${dbPortDefault}\`
+        - Database: \`${options.dbName}\`
+        - User: \`${options.dbUser}\`
+        - Password: \`${options.dbPassword}\`
+    - **From your host machine (e.g., TablePlus, DBeaver):** Use \`localhost\` and the published port.
+        - Host: \`localhost\`
+        - Port: (Set by \`${dbPortVar}\` in \`.env\`, defaults to \`${dbPortDefault}\`)
+        - Database: \`${options.dbName}\`
+        - User: \`${options.dbUser}\`
+        - Password: \`${options.dbPassword}\``;
+            }
+            if (options.phpmyadmin) {
+                servicesAndPortsDetails += `\n- **phpMyAdmin**: http://localhost:8081`;
+            }
+            if (options.pgadmin) {
+                servicesAndPortsDetails += `\n- **pgAdmin**: http://localhost:5050 (Login with \`admin@example.com\` / \`password\`)`;
+            }
+
+            return `# ${options.appName}
+
+This is a development environment for a modern PHP application.
+
+## Tech Stack
+${techStack}
+
+## Project Structure
+All of your application code should be placed in the \`src\` directory.
+
+## Getting Started
+1.  Review the \`.env\` file and adjust any settings as needed.
+2.  Run the following command to build and start the services:
+    \`\`\`bash
+    docker-compose up -d --build
+    \`\`\`
+
+## Managing the Environment
+
+### Accessing the Container Shell
+To run commands like \`composer install\` or other command-line tools, you need to get a shell inside the main application container.
+
+\`\`\`bash
+docker-compose exec app bash
+\`\`\`
+
+### Stopping the Environment
+To stop all the running containers for this project, run:
+
+\`\`\`bash
+docker-compose down
+\`\`\`
+
+### Full Cleanup
+To stop the containers AND remove all associated data volumes (this will delete your database data), run:
+
+\`\`\`bash
+docker-compose down -v
+\`\`\`
+
+## Services & Ports
+${servicesAndPortsDetails}
+`;
+        }
+
+        async function generateReadmeWithGemini(options) {
+            const loadingStatus = document.getElementById('loading-status');
+            loadingStatus.textContent = '✨ Asking AI to generate README...';
+
+            let techStack = `- PHP ${options.phpVersion}\n- NGINX`;
+            if (options.db !== 'none') techStack += `\n- ${options.db.charAt(0).toUpperCase() + options.db.slice(1)}`;
+            if (options.redis) techStack += `\n- Redis`;
+            if (options.mailpit) techStack += `\n- Mailpit`;
+            if (options.typesense) techStack += `\n- Typesense`;
+            if (options.phpmyadmin) techStack += `\n- phpMyAdmin`;
+            if (options.pgadmin) techStack += `\n- pgAdmin`;
+
+            let servicesAndPortsDetails = `- **Application URL**: http://localhost:${options.appPort}`;
+            if (options.mailpit) {
+                servicesAndPortsDetails += `\n- **Mailpit UI**: http://localhost:8025`;
+            }
+            if (options.db !== 'none') {
+                const dbPortVar = options.db === 'postgres' ? 'PGSQL_PORT' : 'DB_PORT';
+                const dbPortDefault = options.db === 'postgres' ? '5432' : '3306';
+                servicesAndPortsDetails += `\n- **Database (${options.db})**:
+    - **For your application (inside Docker):** Use the service name as the host.
+        - Host: \`${options.db}\`
+        - Port: \`${dbPortDefault}\`
+        - Database: \`${options.dbName}\`
+        - User: \`${options.dbUser}\`
+        - Password: \`${options.dbPassword}\`
+    - **From your host machine (e.g., TablePlus, DBeaver):** Use \`localhost\` and the published port.
+        - Host: \`localhost\`
+        - Port: (Set by \`${dbPortVar}\` in \`.env\`, defaults to \`${dbPortDefault}\`)
+        - Database: \`${options.dbName}\`
+        - User: \`${options.dbUser}\`
+        - Password: \`${options.dbPassword}\``;
+            }
+            if (options.phpmyadmin) {
+                servicesAndPortsDetails += `\n- **phpMyAdmin**: http://localhost:8081`;
+            }
+            if (options.pgadmin) {
+                servicesAndPortsDetails += `\n- **pgAdmin**: http://localhost:5050 (Login with \`admin@example.com\` / \`password\`)`;
+            }
+
+            const prompt = `
+Generate a README.md file for a new PHP development project named "${options.appName}". The project is configured with the following technology stack:
+${techStack}
+
+The README should be well-structured and include the following sections in this order:
+1.  A project title: "# ${options.appName}"
+2.  A brief, one-paragraph overview of the project's purpose (you can make up a generic purpose like "A modern PHP application").
+3.  A "Tech Stack" section that lists the technologies provided above.
+4.  A "Project Structure" section that explains that all application code should be placed in the \`src\` directory.
+5.  A "Getting Started" section that explains the following two steps:
+    - First, the user should review the \`.env\` file for configuration.
+    - Second, the user should run \`docker-compose up -d --build\` to start the environment.
+6.  A "Managing the Environment" section with three sub-sections:
+    - **Accessing the Container Shell**: Explain how to run commands inside the app container using \`docker-compose exec app bash\`. Give an example for running \`composer install\`.
+    - **Stopping the Environment**: Explain that \`docker-compose down\` will stop and remove the containers.
+    - **Full Cleanup**: Explain that \`docker-compose down -v\` will stop containers AND remove all data volumes (like the database). Add a warning that this is a destructive action.
+7.  A "Services & Ports" section that lists the key services and how to access them, using ONLY the details provided below:
+    ${servicesAndPortsDetails}
+
+The tone should be helpful and professional. Format the output as clean Markdown.
+`;
+
+            try {
+                const apiKey = typeof GEMINI_API_KEY !== 'undefined' ? GEMINI_API_KEY : "";
+                if (!apiKey) throw new Error("API Key not found.");
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    loadingStatus.textContent = 'README generated successfully!';
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    loadingStatus.textContent = 'Could not extract text from AI response.';
+                    console.error("Unexpected API response structure:", result);
+                    return "# README Generation Failed\n\nCould not generate README from AI response.";
+                }
+            } catch (error) {
+                loadingStatus.textContent = 'Error calling Gemini API.';
+                console.error("Error calling Gemini API:", error);
+                return `# README Generation Failed\n\nAn error occurred while contacting the Gemini API: ${error.message}`;
+            }
+        }
+
+
+        // --- Form Submission and Zipping Logic ---
+        document.getElementById('generator-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingDiv = document.getElementById('loading');
+            const loadingStatus = document.getElementById('loading-status');
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            loadingDiv.classList.remove('hidden');
+            loadingStatus.textContent = 'Gathering options...';
+
+            const options = {
+                // Basic options
+                phpVersion: document.getElementById('php-version').value,
+                db: document.querySelector('input[name="db"]:checked').value,
+                redis: document.getElementById('redis').checked,
+                mailpit: document.getElementById('mailpit').checked,
+                typesense: document.getElementById('typesense').checked,
+                phpmyadmin: document.getElementById('phpmyadmin').checked,
+                pgadmin: document.getElementById('pgadmin').checked,
+                generateReadme: document.getElementById('generate-readme').checked,
+                useAiReadme: document.getElementById('use-ai-readme') ? document.getElementById('use-ai-readme').checked : false,
+                // Advanced options
+                appName: document.getElementById('app-name').value,
+                appPort: document.getElementById('app-port').value,
+                dbName: document.getElementById('db-name').value,
+                dbUser: document.getElementById('db-user').value,
+                dbPassword: document.getElementById('db-password').value,
+                dbRootPassword: document.getElementById('db-root-password').value,
+            };
+
+            const zip = new JSZip();
+
+            // Generate README if requested
+            if (options.generateReadme) {
+                const useAi = options.useAiReadme && typeof GEMINI_API_KEY !== 'undefined' && GEMINI_API_KEY;
+                const readmeContent = useAi
+                    ? await generateReadmeWithGemini(options)
+                    : getGenericReadmeContent(options);
+                zip.file('README.md', readmeContent);
+            }
+
+            // Add other files to zip
+            loadingStatus.textContent = 'Generating configuration files...';
+            zip.file('.env', getEnvContent(options));
+            zip.file('docker-compose.yml', getDockerComposeContent(options));
+
+            const dockerFolder = zip.folder('docker');
+            dockerFolder.folder('nginx').file('default.conf', getNginxConfContent());
+            dockerFolder.folder('php').file('Dockerfile', getDockerfileContent());
+
+            const srcFolder = zip.folder('src');
+            srcFolder.file('index.php', getIndexPhpContent());
+
+            // Generate and download zip
+            loadingStatus.textContent = 'Zipping files...';
+            zip.generateAsync({ type: 'blob' })
+                .then(function(content) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = `${options.appName}.zip`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate & Download ZIP';
+                    loadingDiv.classList.add('hidden');
+                    loadingStatus.textContent = '';
+                });
+        });
+    </script>
+</body>
+</html>
