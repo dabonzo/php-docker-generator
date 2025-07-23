@@ -9,19 +9,19 @@ This project was built to be a framework-agnostic, modern alternative to tools l
 ## Features
 
 - **Modular Services:** Choose only the services you need.
-    - **Databases:** MySQL, MariaDB, PostgreSQL.
-    - **Caching:** Redis.
-    - **Utilities:** Mailpit for email catching, Typesense for search.
-    - **Admin Tools:** phpMyAdmin, pgAdmin.
+  - **Databases:** MySQL, MariaDB, PostgreSQL.
+  - **Caching:** Redis.
+  - **Utilities:** Mailpit for email catching, Typesense for search.
+  - **Admin Tools:** phpMyAdmin, pgAdmin.
 - **Customizable:**
-    - Select PHP versions from 7.4 to 8.3.
-    - Configure application name, port, and all database credentials.
+  - Select PHP versions from 7.4 to 8.3.
+  - Configure application name, port, and all database credentials.
 - **AI-Powered READMEs:** If configured locally, it uses the Gemini API to generate a detailed, project-specific `README.md` for the environment it creates.
 - **Zero Dependencies:** Runs entirely in the browser. Just open the `index.html` file.
 
 ## How to Use
 
-### For End-Users
+### For New Projects
 
 The easiest way to use the generator is to visit the live demo link above.
 
@@ -32,6 +32,15 @@ Alternatively, you can download the `index.html` file from this repository and o
 3.  Click "Generate & Download ZIP".
 4.  Extract the downloaded `.zip` file into your new project folder.
 5.  Follow the instructions in the generated `README.md` file to start your environment.
+
+### For Existing Projects
+
+You can easily integrate this environment into a project that already has a codebase.
+
+1.  **Generate the Files:** Use the generator to select and download the services you need. Extract the `.zip` file into a temporary folder.
+2.  **Move Environment Files:** Copy the `docker` folder, the `docker-compose.yml` file, and the `.env` file from the temporary folder into the root directory of your existing project.
+3.  **Verify Source Directory:** This setup assumes your application's code is located in a folder named `src` at the root of your project. If your code is in a different folder (e.g., `public`, `app`), you must rename it to `src` for the Docker environment to find it.
+4.  **Start the Environment:** Run `docker-compose up -d --build` from your project's root directory.
 
 ## How to Develop or Contribute
 
